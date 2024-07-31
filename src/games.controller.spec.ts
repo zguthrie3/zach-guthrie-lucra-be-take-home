@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { GamesController } from './games.controller';
 import { GamesService } from './games.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Game, GameCell } from './entities';
+import { Game, GameCell } from './models/entities';
 
 describe('GamesController', () => {
   let gamesController: GamesController;

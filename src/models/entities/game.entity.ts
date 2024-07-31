@@ -9,6 +9,11 @@ export enum GameStatus {
 
 @Entity({ name: 'games' })
 export class Game {
+  constructor(rows: number, columns: number) {
+    this.rows = rows;
+    this.columns = columns;
+  }
+
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -20,7 +25,9 @@ export class Game {
   })
   status: GameStatus;
 
-  @OneToMany(() => GameCell, (cell) => cell.game)
+  @OneToMany(() => GameCell, (cell) => cell.game, {
+    cascade: true
+  })
   cells: GameCell[];
 
   @Column()

@@ -16,6 +16,13 @@ export enum CellStatus {
 
 @Entity({ name: 'game_cells' })
 export class GameCell {
+  constructor(game: Game, xCoordinate: number, yCoordinate: number, isMine: boolean) {
+    this.game = game;
+    this.xCoordinate = xCoordinate;
+    this.yCoordinate = yCoordinate;
+    this.isMine = isMine;
+  }
+
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
