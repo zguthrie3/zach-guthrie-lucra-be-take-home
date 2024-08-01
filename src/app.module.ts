@@ -15,7 +15,7 @@ import { Game, GameCell } from './models/entities';
       username: 'local',
       password: 'local',
       database: 'local',
-      entities: [join(__dirname, 'entities/*')],
+      entities: [join(__dirname, 'models/entities/*')],
       synchronize: true,
     }),
     TypeOrmModule.forFeature([Game, GameCell]),

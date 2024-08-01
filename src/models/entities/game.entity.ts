@@ -26,7 +26,7 @@ export class Game {
   status: GameStatus;
 
   @OneToMany(() => GameCell, (cell) => cell.game, {
-    cascade: true
+    cascade: false
   })
   cells: GameCell[];
 

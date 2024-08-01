@@ -7,7 +7,6 @@ import {
   Post,
 } from '@nestjs/common';
 import { CreateGameDto } from './models/dto';
-import { Game } from './models/entities';
 import { GamesService } from './games.service';
 
 @Controller('games')
@@ -15,7 +14,7 @@ export class GamesController {
   constructor(private readonly appService: GamesService) {}
 
   @Get()
-  async getAll(games: Array<Game>) {
+  async getAll() {
     return await this.appService.findAllGames(); 
   }
 

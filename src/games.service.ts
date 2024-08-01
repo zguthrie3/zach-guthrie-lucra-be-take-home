@@ -30,8 +30,12 @@ export class GamesService {
     let cells = this.generateCells(game, gameDto.rows, gameDto.columns);
     
     // Extra credit! Because the value is calculated based on neighbors, we need to do this after all cells have been generated.
-    this.calculateNeighboringBombs(cells, gameDto.rows, gameDto.columns);
-    game.cells = cells;
+    game.cells = this.calculateNeighboringBombs(cells, gameDto.rows, gameDto.columns);
+
+    console.log(`Game: ${game}`);
+    for (let cell of game.cells) {
+      console.log(`Cell content\t|\tX: ${cell.xCoordinate}\t|\tY: ${cell.yCoordinate}\t|\tMine? ${cell.isMine}\t|\tNeighboring Bomb Count: ${cell.neighboringBombCount}`)
+    }
 
     // Now we create the row for the game and insert it into the DB. Because we have added cascade parameters to the entity relationship,
     // this will automatically add entities for all of the new cells as well.
@@ -84,47 +88,58 @@ export class GamesService {
   }
 
   private calculateNeighboringBombs(cells: GameCell[], rows: number, columns: number) {
-    let x: number, y: number, count: number, neighbor: GameCell;
-    // Array order starts with NW neighbor and goes clockwise around the current cell
-    const coordinates = [
-      [x - 1, y - 1],
-      [x, y - 1],
-      [x + 1, y - 1],
-      [x + 1, y],
-      [x + 1, y + 1],
-      [x, y + 1],
-      [x - 1, y + 1],
-      [x - 1, y]
-    ]
+    return cells.map(cell => {
+      let x = cell.xCoordinate;
+      let y = cell.yCoordinate;
+      let count = 0;
+      let neighbor: GameCell;
 
-    for (let cell of cells) {
+      // Array order starts with NW neighbor and goes clockwise around the current cell
+      const coordinates = [
+        [x - 1, y - 1],
+        [x, y - 1],
+        [x + 1, y - 1],
+        [x + 1, y],
+        [x + 1, y + 1],
+        [x, y + 1],
+        [x - 1, y + 1],
+        [x - 1, y]
+      ]
+      count = 0;
       // This value only needs to be calculated for cells that do not contain mines.
+      x = cell.xCoordinate;
+      y = cell.yCoordinate;
+
       if (!cell.isMine) {
         /** 
-         * There are 8 discrete pairs of coordinates for a cell's neighbor. We need to check each one and ensure the following criteria:
+         * There are 8 specific pairs of coordinates for a cell's neighbor. We need to check each one and ensure the following criteria:
          * 
-         * 1. The coordinates provided represent a valid tile (calculated by comparing x and y against row/col counts)
-         * 2. The cell in question has a mine (determined by identifying the cell in the array and checking its property)
+         * 1. The coordinates provided represent a valid cell (calculated by comparing x and y against row/col counts)
+         * 2. The neighbor has a mine (determined by identifying the cell in the array and checking its property)
          * 
          * The count is then set to the total number of cells containing mines. 
          **/
-        x = cell.xCoordinate;
-        y = cell.yCoordinate;
-        count = 0;
-
+        
         for (let coord of coordinates) {
           // If neither x nor y is out of bounds, we know that the coordinate represents a valid cell.
-          if (!(coord[0] < 0 || coord[0] == rows || coord[1] < 0 || coord[1] == columns)) {
+          if (!(
+            coord[0] < 0 ||
+            coord[0] == rows ||
+            coord[1] < 0 ||
+            coord[1] == columns
+          )) {
             // Because the cells were put into the array in sequential order, we can use the X and Y coordinates to identify
             // the index of the neighbor cell. Once we find the cell, we check if it contains a mine, and update the count.
-            neighbor = cells[y * 10 + x]
+            neighbor = cells[coord[1] * columns + coord[0]]
             if (neighbor.isMine) {
+              console.log("We've hit a mine!");
               count++;
             }
           }
         }
-        cell.neighboringBombCount = count;
       }
-    }
+      cell.neighboringBombCount = count;
+      return cell;
+    });
   }
 }
