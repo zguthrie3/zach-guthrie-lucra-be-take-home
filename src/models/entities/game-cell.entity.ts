@@ -26,7 +26,9 @@ export class GameCell {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Game, (game) => game.cells)
+  @ManyToOne(() => Game, (game) => game.cells, {
+    onDelete: 'CASCADE'
+  })
   @JoinColumn({ name: 'game_id' })
   game: Game;
 

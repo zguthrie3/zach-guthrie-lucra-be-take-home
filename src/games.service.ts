@@ -27,25 +27,20 @@ export class GamesService {
     let game = new Game(gameDto.rows, gameDto.columns);
 
     // Next we need to generate the cells. We also want to connect the one-to-many relationship between Game and GameCell.
-    let cells = this.generateCells(game, gameDto.rows, gameDto.columns);
-    
-    // Extra credit! Because the value is calculated based on neighbors, we need to do this after all cells have been generated.
-    game.cells = this.calculateNeighboringBombs(cells, gameDto.rows, gameDto.columns);
+    game.cells = this.generateCells(game, gameDto.rows, gameDto.columns);
 
-    console.log(`Game: ${game}`);
     for (let cell of game.cells) {
       console.log(`Cell content\t|\tX: ${cell.xCoordinate}\t|\tY: ${cell.yCoordinate}\t|\tMine? ${cell.isMine}\t|\tNeighboring Bomb Count: ${cell.neighboringBombCount}`)
     }
 
     // Now we create the row for the game and insert it into the DB. Because we have added cascade parameters to the entity relationship,
     // this will automatically add entities for all of the new cells as well.
-    const gameRow = this.gamesRepository.create(game);
-    await this.gamesRepository.insert(gameRow);
+    await this.gamesRepository.save(game);
   }
 
   private generateCells(game: Game, rows: number, columns: number): GameCell[] {
     /**
-     * Based on the average difficulty of standard Minesweeper levels in the Windows edition.
+     * Rate based on the average difficulty of standard Minesweeper levels in the Windows edition.
      * 
      * Beginner: 81 tiles, 10 mines, 12.3% mine rate
      * Intermediate: 256 tiles, 40 mines, 15.6% mine rate
@@ -84,7 +79,8 @@ export class GamesService {
       }
     }
 
-    return cells;
+    // Finally, we use a mapping function to calculate the number of neighboring bombs for each cell.
+    return this.calculateNeighboringBombs(cells, rows, columns);
   }
 
   private calculateNeighboringBombs(cells: GameCell[], rows: number, columns: number) {
