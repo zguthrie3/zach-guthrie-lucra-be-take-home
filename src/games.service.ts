@@ -132,7 +132,6 @@ export class GamesService {
             // the index of the neighbor cell. Once we find the cell, we check if it contains a mine, and update the count.
             neighbor = cells[coord[1] * columns + coord[0]]
             if (neighbor.isMine) {
-              console.log("We've hit a mine!");
               count++;
             }
           }
