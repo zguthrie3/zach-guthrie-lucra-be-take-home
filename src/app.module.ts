@@ -2,8 +2,8 @@ import 'reflect-metadata';
 import { join } from 'node:path';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { GamesController } from './games.controller';
-import { GamesService } from './games.service';
+import { GamesController } from './controllers/games.controller';
+import { GamesService } from './services/games.service';
 import { Game, GameCell } from './models/entities';
 
 @Module({

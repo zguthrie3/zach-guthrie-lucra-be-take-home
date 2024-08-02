@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, JoinColumn } from 'typeorm';
 import { GameCell } from './game-cell.entity';
 
 export enum GameStatus {
@@ -23,6 +23,7 @@ export class Game {
     enumName: 'permission_enum',
     default: GameStatus.Pending,
   })
+  @JoinColumn()
   status: GameStatus;
 
   @OneToMany(() => GameCell, (cell) => cell.game, {

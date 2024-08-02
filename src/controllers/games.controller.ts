@@ -6,8 +6,8 @@ import {
   Param,
   Post,
 } from '@nestjs/common';
-import { CreateGameDto } from './models/dto';
-import { GamesService } from './games.service';
+import { CreateGameDto } from '../models/dto';
+import { GamesService } from '../services/games.service';
 
 @Controller('games')
 export class GamesController {
@@ -15,7 +15,11 @@ export class GamesController {
 
   @Get()
   async getAll() {
-    return await this.appService.findAllGames(); 
+    const games = await this.appService.findAllGames(); 
+    return {
+      games,
+      count: games.length
+    }
   }
 
   @Get(':id')
@@ -31,6 +35,6 @@ export class GamesController {
 
   @Post()
   create(@Body() createGameDto: CreateGameDto) {
-    this.appService.createGame(createGameDto);
+    return this.appService.createGame(createGameDto);
   }
 }
