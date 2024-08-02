@@ -26,6 +26,7 @@ export class GameCell {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  // Setting this property to CASCADE allows for automatic cleanup of GameCells when the parent Game is deleted from the DB
   @ManyToOne(() => Game, (game) => game.cells, {
     onDelete: 'CASCADE'
   })

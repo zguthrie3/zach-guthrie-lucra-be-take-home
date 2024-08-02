@@ -36,6 +36,7 @@ export class Game {
   @JoinColumn()
   status: GameStatus;
 
+  // Setting this property to true allows for easy insertion/deletion of all GameCells for a given Game
   @OneToMany(() => GameCell, (cell) => cell.game, {
     cascade: true
   })
