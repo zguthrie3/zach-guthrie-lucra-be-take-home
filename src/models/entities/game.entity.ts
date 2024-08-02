@@ -9,9 +9,19 @@ export enum GameStatus {
 
 @Entity({ name: 'games' })
 export class Game {
-  constructor(rows: number, columns: number) {
+  // We want a fully fleshed out constructor for testing purposes to easily specify every Game property
+  constructor(id: string, rows: number, columns: number, status: GameStatus, cells: GameCell[]) {
+    this.id = id;
     this.rows = rows;
     this.columns = columns;
+    this.status = status;
+    this.cells = cells;
+  }
+
+  // Since the main use case for creating a game will only provide rows and columns, we've created a convenience method
+  // to call the constructor with only this info
+  static RowsAndColumnOnly(rows: number, columns: number) {
+    return new Game(undefined, rows, columns, undefined, undefined);
   }
 
   @PrimaryGeneratedColumn('uuid')

@@ -9,9 +9,6 @@ export class GamesService {
   constructor(
     @InjectRepository(Game)
     private gamesRepository: Repository<Game>,
-
-    @InjectRepository(GameCell)
-    private gameCellsRepository: Repository<GameCell>,
   ) {}
 
   async findOneGame(id: string) {
@@ -30,8 +27,8 @@ export class GamesService {
   }
 
   async createGame(gameDto: CreateGameDto) {
-    // First we create the Game object itself, using the rows and columns provided from the DTO.
-    let game = new Game(gameDto.rows, gameDto.columns);
+    // First we create the Game object itself, using only the rows and columns provided from the DTO.
+    let game = Game.RowsAndColumnOnly(gameDto.rows, gameDto.columns);
 
     // Next we need to generate the cells. We also want to connect the one-to-many relationship between Game and GameCell.
     game.cells = this.generateCells(game, gameDto.rows, gameDto.columns);
