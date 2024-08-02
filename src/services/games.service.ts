@@ -31,7 +31,10 @@ export class GamesService {
     let game = Game.RowsAndColumnOnly(gameDto.rows, gameDto.columns);
 
     // Next we need to generate the cells. We also want to connect the one-to-many relationship between Game and GameCell.
-    game.cells = this.generateCells(game, gameDto.rows, gameDto.columns);
+    const unscoredCells = this.generateCells(game, gameDto.rows, gameDto.columns);
+
+    // Finally, we use a mapping function to calculate the number of neighboring bombs for each cell.
+    game.cells = this.calculateNeighboringBombs(unscoredCells, gameDto.rows, gameDto.columns);
 
     // Now we create the row for the game and insert it into the DB. Because we have added cascade parameters to the entity relationship,
     // this will automatically add entities for all of the new cells as well.
@@ -65,7 +68,7 @@ export class GamesService {
          * To randomize the mines, we add a rudimentary randomness check. The check starts at a 20% success rate,
          * and increases the success chance by 20% for every failure. This value is based on a mine rate of 16.2%.
          * When a mine is placed in the grid, the success rate resets to 20%. This helps to distribute mines
-         * throughout the entire grid, and guarantees we will always have the number of mines calculated by the mine rate.
+         * throughout the entire grid, and guarantees we will always have a relatively consistent number of mines.
          */
         isMine = mineCount < totalMines && Math.random() < threshold;
         cells.push(new GameCell(game, x, y, isMine));
@@ -79,9 +82,7 @@ export class GamesService {
         }
       }
     }
-
-    // Finally, we use a mapping function to calculate the number of neighboring bombs for each cell.
-    return this.calculateNeighboringBombs(cells, rows, columns);
+    return cells;
   }
 
   private calculateNeighboringBombs(cells: GameCell[], rows: number, columns: number) {
@@ -125,8 +126,15 @@ export class GamesService {
             coord[1] < 0 ||
             coord[1] === rows
           )) {
-            // Because the cells were put into the array in sequential order, we can use the X and Y coordinates to identify
-            // the index of the neighbor cell. Once we find the cell, we check if it contains a mine, and update the count.
+            /**
+             * Because the cells were put into the array in sequence (left-to-right, top-to-bottom), we can use the X and Y coordinates
+             * to calculate the index of the cell in the cells array
+             * 
+             * Index = Y coordinate * num of columns (length of row) + X coordinate
+             * EX: Cell at (2, 5) would be index 25 in the array
+             * 
+             * Once we find the cell, we check if it contains a mine, and update the count.
+             */
             neighbor = cells[coord[1] * columns + coord[0]]
             if (neighbor.isMine) {
               count++;

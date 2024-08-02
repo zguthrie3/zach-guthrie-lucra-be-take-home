@@ -1,14 +1,152 @@
+import { Test, TestingModule } from "@nestjs/testing";
 import { GamesService } from "../games.service";
+import { getRepositoryToken } from "@nestjs/typeorm";
+import { Game, GameCell, GameStatus } from "../../models/entities";
+import { CreateGameDto } from "../../models/dto";
 
 describe('GamesService', () => {
-    let gamesService: GamesService;
+  let gamesService: GamesService;
 
-    const mockGamesRepository = {
-        find: jest.fn(() => null),
-        findOneBy: jest.fn(() => null),
-    };
+  const mockGamesRepository = {
+    find: jest.fn(() => null),
+    findOne: jest.fn(() => null),
+    save: jest.fn(() => null)
+  };
 
-    const mockGameCellsRepository = {
-        findOneBy: jest.fn(() => null),
-    };
-})
+  beforeEach(async () => {
+    const app: TestingModule = await Test.createTestingModule({
+      providers: [
+        GamesService,
+        {
+          provide: getRepositoryToken(Game),
+          useValue: mockGamesRepository,
+        }
+      ],
+    }).compile();
+
+    gamesService = app.get<GamesService>(GamesService);
+  });
+
+  describe('findOneGame() tests', () => {
+    it('should find a game based on an ID', async () => {
+      const id = '123';
+      const repositoryParams = {
+        where: {
+          id
+        },
+        relations: ['cells']
+      };
+      const data = new Game(id, 100, 200, GameStatus.Pending, []);
+      mockGamesRepository.findOne.mockReturnValue(data);
+      expect(await gamesService.findOneGame(id)).toEqual(data);
+      expect(mockGamesRepository.findOne).toHaveBeenCalledWith(repositoryParams);
+    })
+
+    it('should return a null response when no ID matches', async () => {
+      const id = 'bad-id';
+      const repositoryParams = {
+        where: {
+          id
+        },
+        relations: ['cells']
+      };
+      mockGamesRepository.findOne.mockReturnValue(null);
+      expect(await gamesService.findOneGame(id)).toBeNull;
+      expect(mockGamesRepository.findOne).toHaveBeenCalledWith(repositoryParams);
+    })
+  });
+
+  describe('findAllGames() tests', () => {
+    it('should return a list of games', async () => {
+      const games = [
+        new Game('123', 100, 200, GameStatus.Pending, []),
+        new Game('456', 100, 200, GameStatus.Pending, [])
+      ]
+
+      const repositoryParams = {
+        relations: ['cells']
+      };
+
+      mockGamesRepository.find.mockReturnValue(games);
+      expect(await gamesService.findAllGames()).toEqual(games);
+      expect(mockGamesRepository.find).toHaveBeenCalledWith(repositoryParams);
+    })
+  });
+
+  describe('createGame() tests', () => {
+    it('should return the game ID when successfully generating a new game and its cells', async () => {
+      const rows = 10;
+      const cols = 20;
+      const dto = new CreateGameDto(rows, cols);
+      const mockGame = new Game('123', rows, cols, GameStatus.Pending, []);
+
+      // We need to mock the return value here so we can manually inject our own ID value
+      const rowAndColSpy = jest.spyOn(Game, 'RowsAndColumnOnly').mockReturnValue(mockGame);
+      
+      // We want to spy on the generate cells proces to ensure it's called, but we don't want to mock it because we need to test the inner method
+      const generateCellsSpy = jest.spyOn(GamesService.prototype as any, 'generateCells');
+
+      // We verify that the injected ID is returned to us and the inner methods are called appropriately
+      expect(await gamesService.createGame(dto)).toBe('123');
+
+      // Now, we verify the cells themselves to ensure they are properly set up.
+      expect(mockGame.cells).toHaveLength(rows * cols);
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          let result = mockGame.cells[y * cols + x];
+          // Since the mine generation is random, we will not be able to verify isMine or neighboringBombCounts. All other properties can be verified
+          let expected = new GameCell(mockGame, x, y, true);
+          expect(result.game).toBe(expected.game);
+          expect(result.xCoordinate).toBe(expected.xCoordinate);
+          expect(result.yCoordinate).toBe(expected.yCoordinate);
+        }
+      }
+
+      expect(rowAndColSpy).toHaveBeenCalledWith(dto.rows, dto.columns);
+      expect(generateCellsSpy).toHaveBeenCalledWith(mockGame, dto.rows, dto.columns);
+    });
+
+    it('should calculate the neighboring bomb count correctly', async () => {
+      /**
+       * The mocked board here is hardcoded to a size of 3x3. The expected values are as follows:
+       * 
+       * Mine board            Neighboring Bomb Count
+       * Mine  Empty Empty                    0 2 1
+       * Empty Mine  Empty                    2 0 1
+       * Empty Empty Empty                    1 1 1
+       */
+      const rows = 3;
+      const cols = 3;
+      const dto = new CreateGameDto(rows, cols);
+      const mockGame = new Game('123', rows, cols, GameStatus.Pending, []);
+
+      // We mock out the exact structure of cells generated by generateCells so we can control the neighboringBombCounts
+      const mockCells = [
+        new GameCell(mockGame, 0, 0, true),
+        new GameCell(mockGame, 1, 0, false),
+        new GameCell(mockGame, 2, 0, false),
+        new GameCell(mockGame, 0, 1, false),
+        new GameCell(mockGame, 1, 1, true),
+        new GameCell(mockGame, 2, 1, false),
+        new GameCell(mockGame, 0, 2, false),
+        new GameCell(mockGame, 1, 2, false),
+        new GameCell(mockGame, 2, 2, false),
+      ];
+      jest.spyOn(GamesService.prototype as any, 'generateCells').mockReturnValue(mockCells);
+      const neighboringBombsSpy = jest.spyOn(GamesService.prototype as any, 'calculateNeighboringBombs');
+
+      await gamesService.createGame(dto);
+      expect(neighboringBombsSpy).toHaveBeenCalledWith(mockCells, dto.rows, dto.columns);
+
+      for (let cell of mockGame.cells) {
+        if (cell.isMine) {
+          expect(cell.neighboringBombCount).toEqual(0);
+        } else if ((cell.xCoordinate === 1 && cell.yCoordinate === 0) || (cell.xCoordinate === 0 && cell.yCoordinate === 1)) {
+          expect(cell.neighboringBombCount).toEqual(2);
+        } else {
+          expect(cell.neighboringBombCount).toEqual(1);
+        }
+      }
+    });
+  });
+});
